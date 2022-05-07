@@ -10,6 +10,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.Point;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -28,31 +30,48 @@ public class ChromeStarter extends Thread {
     private String twitchUser;
     private String twitchPassword;
     private CyclicBarrier barrera;
+    private CyclicBarrier segundaBarrera;
 
-    public ChromeStarter(JSONObject acc, int id, CyclicBarrier barrier) {
+    public ChromeStarter(JSONObject acc, int id, CyclicBarrier barrier, CyclicBarrier segundabarrera) {
         WebDriverManager.chromedriver().setup();
         ChromeDriver driver = new ChromeDriver();
+        Dimension dm = new Dimension(800,600);
+        driver.manage().window().setSize(dm);
+
+        if(id==1)
+        {driver.manage().window().setPosition(new Point(0,0));}
+        else if(id==2)
+        {driver.manage().window().setPosition(new Point(800,0));}
+        else if(id==3)
+        {driver.manage().window().setPosition(new Point(0,600));}
+        else if(id==4)
+        {driver.manage().window().setPosition(new Point(800,600));}
+
+        
         this.driver = driver;
         this.twitchUser = (String) acc.get("username");
         this.twitchPassword = (String) acc.get("password");
         this.id = id;
         this.barrera = barrier;
+        this.segundaBarrera= barrera;
     }
 
     public void run() {
         System.out.println("Running thread number: " + id);
-        openTwitchAndLogIn(this.twitchUser, this.twitchPassword);
+        try {
+            openTwitchAndLogIn(this.twitchUser, this.twitchPassword);
+        } catch (BrokenBarrierException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void openTwitchAndLogIn(String twitchUser, String twitchPassword) {
+    private void openTwitchAndLogIn(String twitchUser, String twitchPassword) throws BrokenBarrierException {
         driver.get("https://www.twitch.tv/");
-        driver.findElement(By.xpath("//button[normalize-space()=\"Iniciar sesión\"]")).click(); // le da en iniciar
+        // driver.findElement(By.xpath("//button[normalize-space()=\"Iniciar sesión\"]")).click(); // le da en iniciar
         // sesión
-        /*
-         *
-         * driver.findElement(By.xpath("//button[normalize-space()=\"LogIn\"]")).click()
-         * ;
-         */
+        
+         driver.findElement(By.xpath("//button[normalize-space()=\"Log In\"]")).click();
+         
         WebElement userElement = new WebDriverWait(driver, Duration.ofSeconds(300))
                 .until(ExpectedConditions.elementToBeClickable(By.id("login-username")));
         userElement.sendKeys(twitchUser); // entra el usuario de twitch
@@ -81,24 +100,42 @@ public class ChromeStarter extends Thread {
         try {
             Thread.sleep(4000);
             driver.get("https://www.twitch.tv/brawlhalla"); // entra a brawlhalla
-        } catch (InterruptedException e) {
+            Thread.sleep(4000);
+            segundaBarrera.await();
+        } catch (InterruptedException |BrokenBarrierException e2) {
         }
+        WebElement options = new WebDriverWait(driver, Duration.ofSeconds(30))
+        .until(ExpectedConditions
+            .elementToBeClickable(By.xpath(
+                "/html/body/div[1]/div/div[2]/div[1]/main/div[2]/div[3]/div/div/div[2]/div/div[2]/div/div[2]/div/div/div[7]/div/div[2]/div[2]/div[1]/div[2]/div/button")));
+    options.click();
+    WebElement quality = new WebDriverWait(driver, Duration.ofSeconds(30))
+        .until(ExpectedConditions
+            .elementToBeClickable(By.xpath(
+                "/html/body/div[1]/div/div[2]/div[1]/main/div[2]/div[3]/div/div/div[2]/div/div[2]/div/div/div/div/div[7]/div/div[2]/div[2]/div[1]/div[1]/div/div/div/div/div/div/div[3]/button")));
+    quality.click();
+    WebElement cienp = new WebDriverWait(driver, Duration.ofSeconds(30))
+        .until(ExpectedConditions
+            .elementToBeClickable(By.xpath(
+                "/html/body/div[1]/div/div[2]/div[1]/main/div[2]/div[3]/div/div/div[2]/div/div[2]/div/div/div/div/div[7]/div/div[2]/div[2]/div[1]/div[1]/div/div/div/div/div/div/div[9]/div/div/div/label")));
+    cienp.click();
     }
 
     public static void main(String[] args) {
 
         try {
             // Parse JSON File
-            JSONObject json = readAccountJSON();
+            JSONObject json = readAccountJSON();    
             JSONArray sheet = (JSONArray) json.get("users");
             CyclicBarrier newBarrier = new CyclicBarrier(sheet.size());
+            CyclicBarrier newSecondBarrier = new CyclicBarrier(sheet.size());
             System.out.println("Account JSON loaded correctly");
             // Create thread arraylist
             ArrayList<ChromeStarter> threadArray = new ArrayList<ChromeStarter>();
             int i = 1;
             for (Object o : sheet) {
                 if (o instanceof JSONObject) {
-                    ChromeStarter chrome = new ChromeStarter((JSONObject) o, i, newBarrier);
+                    ChromeStarter chrome = new ChromeStarter((JSONObject) o, i, newBarrier, newSecondBarrier);
                     chrome.start();
                     i++;
                 }
