@@ -17,7 +17,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
+import org.openqa.selenium.interactions.Actions;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import io.ous.jtoml.ParseException;
 
@@ -100,10 +100,11 @@ public class ChromeStarter extends Thread {
         try {
             Thread.sleep(4000);
             driver.get("https://www.twitch.tv/brawlhalla"); // entra a brawlhalla
-            Thread.sleep(4000);
             segundaBarrera.await();
         } catch (InterruptedException |BrokenBarrierException e2) {
-        }
+        }      Actions actionProvider = new Actions(driver);
+
+
         WebElement options = new WebDriverWait(driver, Duration.ofSeconds(30))
         .until(ExpectedConditions
             .elementToBeClickable(By.xpath(
